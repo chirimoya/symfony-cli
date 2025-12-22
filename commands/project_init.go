@@ -47,6 +47,8 @@ Templates used by this tool are fetched from ` + templatesGitRepository + `.
 		&console.StringFlag{Name: "slug", DefaultValue: "app", Usage: "Project slug"},
 		&console.StringFlag{Name: "php", Usage: "PHP version to use"},
 		&console.BoolFlag{Name: "upsun", Usage: "Initialize Upsun"},
+		&console.BoolFlag{Name: "cloud", Usage: "Initialize Upsun"},
+		&console.BoolFlag{Name: "platformsh", Usage: "Initialize Platform.sh (deprecated, use --upsun)"},
 		// FIXME: services should also be used to configure Docker? Instead of Flex?
 		// FIXME: services can also be guessed via the existing Docker Compose file?
 		&console.StringSliceFlag{Name: "service", Usage: "Configure some services", Hidden: true},
@@ -81,9 +83,11 @@ Templates used by this tool are fetched from ` + templatesGitRepository + `.
 			return err
 		}
 
-		product := upsun.Fixed
-		if c.Bool("upsun") {
-			product = upsun.Flex
+		// Default to Upsun (Flex), use Platform.sh (Fixed) only when --platformsh is used
+		product := upsun.Flex
+		if c.Bool("platformsh") {
+			product = upsun.Fixed
+			terminal.SymfonyStyle(terminal.Stdout, terminal.Stdin).Warning("The --platformsh flag is deprecated. Platform.sh has been rebranded as Upsun. Please use --upsun or --cloud instead.")
 		}
 		createdFiles, err := createRequiredFilesProject(product, projectDir, slug, c.String("template"), minorPHPVersion, cloudServices, c.Bool("dump"), c.Bool("force"))
 		if err != nil {

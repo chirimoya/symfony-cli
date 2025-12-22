@@ -84,7 +84,8 @@ var localNewCmd = &console.Command{
 		&console.BoolFlag{Name: "docker", Usage: "Enable Docker support"},
 		&console.BoolFlag{Name: "no-git", Usage: "Do not initialize Git"},
 		&console.BoolFlag{Name: "upsun", Usage: "Initialize Upsun configuration"},
-		&console.BoolFlag{Name: "cloud", Usage: "Initialize Platform.sh configuration"},
+		&console.BoolFlag{Name: "cloud", Usage: "Initialize Upsun configuration"},
+		&console.BoolFlag{Name: "platformsh", Usage: "Initialize Platform.sh configuration"},
 		&console.StringSliceFlag{Name: "service", Usage: "Configure some services", Hidden: true},
 		&console.BoolFlag{Name: "debug", Usage: "Display commands output"},
 		&console.StringFlag{Name: "php", Usage: "PHP version to use"},
@@ -158,12 +159,12 @@ var localNewCmd = &console.Command{
 		if c.Bool("webapp") && c.Bool("api") {
 			return console.Exit("The --api flag cannot be used with --webapp", 1)
 		}
-		withCloud := c.Bool("cloud") || c.Bool("upsun")
+		withCloud := c.Bool("cloud") || c.Bool("upsun") || c.Bool("platformsh")
 		if len(c.StringSlice("service")) > 0 && !withCloud {
-			return console.Exit("The --service flag cannot be used without --cloud or --upsun", 1)
+			return console.Exit("The --service flag cannot be used without --cloud, --upsun, or --platformsh", 1)
 		}
 		if withCloud && c.Bool("no-git") {
-			return console.Exit("The --no-git flag cannot be used with --cloud or --upsun", 1)
+			return console.Exit("The --no-git flag cannot be used with --cloud, --upsun, or --platformsh", 1)
 		}
 
 		s := terminal.NewSpinner(terminal.Stderr)
@@ -220,9 +221,10 @@ var localNewCmd = &console.Command{
 					return err
 				}
 			}
-			product := upsun.Fixed
-			if c.Bool("upsun") {
-				product = upsun.Flex
+			// Default to Upsun (Flex), use Platform.sh (Fixed) only when --platformsh is used
+			product := upsun.Flex
+			if c.Bool("platformsh") {
+				product = upsun.Fixed
 			}
 			if err := initCloud(c, product, minorPHPVersion, dir); err != nil {
 				return err
@@ -390,7 +392,7 @@ func initProjectGit(c *console.Context, dir string) error {
 	terminal.Printfln("  (running git init %s)\n", dir)
 	// Only force the branch to be "main" when running a Cloud context to make
 	// onboarding simpler.
-	if buf, err := git.Init(dir, c.Bool("cloud") || c.Bool("upsun"), c.Bool("debug")); err != nil {
+	if buf, err := git.Init(dir, c.Bool("cloud") || c.Bool("upsun") || c.Bool("platformsh"), c.Bool("debug")); err != nil {
 		fmt.Print(buf.String())
 		return err
 	}
